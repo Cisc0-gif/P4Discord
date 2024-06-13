@@ -129,7 +129,7 @@ async def on_message(message):
   #check if storage drive connected
   elif message.content == "/p4 checkdrive":
     result = subprocess.check_output(["wmic", "logicaldisk", "get", "name"])
-    if b'D:' in result:
+    if b'D:' in result: #CHANGE DRIVE NAME HERE
       await channel.send("D: drive connected")
     else:
       await channel.send("D: drive not connected")
