@@ -25,6 +25,7 @@ intents.members = True
 client = discord.Client(command_prefix='/', description='Basic Commands', intents=intents)
 TOKEN = ''
 superuser = "" #superuser to manage admins and server
+monitoring = False
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -81,6 +82,14 @@ async def on_message(message):
         member_names = [member.name for member in members]
         return member_names
 
+  def server_status():
+    proc = subprocess.Popen(["p4", "info"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True)
+    (out, err) = proc.communicate()
+    if str(out) == "b''":
+        return False
+    else:
+        return True
+
   #check if user has admin privileges
   async def check_admin():
     try:
@@ -103,28 +112,49 @@ async def on_message(message):
     else:
       pass
 
+  async def server_monitor():
+    if monitoring == True:
+        if server_status() == False:
+            await message.author.send(":NOTICE: Perforce Server has gone offline!")
+            result = subprocess.check_output(["wmic", "logicaldisk", "get", "name"])
+            if b'D:' not in result:
+                await message.author.send(":NOTICE: D: drive disconnected!")
+            raise asyncio.CancelledError()
+
+        await asyncio.sleep(5)
+        await server_monitor()
+    else:
+      raise asyncio.CancelledError()
+
   #start perforce server + broker
   if message.content == "/p4 start":
     await check_admin()
-    os.system("start /b p4d")
-    os.system("start /b D:\HelixCoreBroker\p4broker.exe") #FILE PATH TO P4BROKER HERE (OR REMOVE IF NO SSL)
-    await channel.send("Perforce Server starting...")
-    await channel.send("Helix Core Broker starting...")
+    if server_status() == False:
+        monitoring = True
+        os.system("start /b p4d")
+        os.system("start /b D:\HelixCoreBroker\p4broker.exe")
+        await channel.send("Perforce Server starting...")
+        await channel.send("Helix Core Broker starting...")
+        await server_monitor() #call after so it doesn't declare the server offline prematurely
+    else:
+        await channel.send(":ERROR: Perforce Server is already running!")
 
   #stop perforce server
   elif message.content == "/p4 stop":
     await check_admin()
-    os.system("p4 admin stop")
-    await channel.send("Perforce Server stopped...")
+    if server_status() == True:
+        monitoring = False
+        os.system("p4 admin stop")
+        await channel.send("Perforce Server stopped...")
+    else:
+        await channel.send(":ERROR: Perforce Server is offline!")
 
   #get server status
   elif message.content == "/p4 status":
-    proc = subprocess.Popen(["p4", "info"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True)
-    (out, err) = proc.communicate()
-    if str(out) == "b''":
-      await channel.send("Perforce Server: offline")
+    if server_status() == False:
+      await channel.send("Perforce Server: OFFLINE")
     else:
-      await channel.send("Perforce Server: online")
+      await channel.send("Perforce Server: ONLINE")
 
   #check if storage drive connected
   elif message.content == "/p4 checkdrive":
