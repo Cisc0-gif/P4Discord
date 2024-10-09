@@ -6,7 +6,7 @@ P4Discord is a Discord app that allows you to manage your locally-hosted Perforc
 
 1. On your server machine, clone this repo onto your C: drive (```/p4 checkdrive``` checks if your storage drive is connected or not, so you should run this bot off an internal drive to prevent failure)
 2. Use ```pip install -r requirements.txt``` to install necessary packages (Reliably tested with Python 3.7.2, anything past that is untested and may have dependency issues!)
-3. Configure ```TOKEN```, ```webhookURL```, and ```startup.bat``` with necessary values (Bot Token, Webhook URL, filepath). CTRL + R, enter "shell:startup", and place ```startup.bat``` in startup folder.
+3. Configure ```TOKEN```, ```webhookURL```, and ```startup.bat``` with necessary values (Bot Token, Webhook URL, filepath). WIN + R, enter "shell:startup", and place ```startup.bat``` in startup folder.
 4. Then use ```python bot.py```. A second window should open, displaying the webhook.py console, and your main window should display a live chat log.
 
 ## Features
