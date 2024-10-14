@@ -8,6 +8,7 @@ P4Discord is a Discord app that allows you to manage your locally-hosted Perforc
 2. Use ```pip install -r requirements.txt``` to install necessary packages (Reliably tested with Python 3.7.2, anything past that is untested and may have dependency issues!)
 3. Configure ```TOKEN```, ```webhookURL```, and ```startup.bat``` with necessary values (Bot Token, Webhook URL, filepath). WIN + R, enter "shell:startup", and place ```startup.bat``` in startup folder.
 4. Then use ```python bot.py```. A second window should open, displaying the webhook.py console, and your main window should display a live chat log.
+5. *Highly recommend going into your server system's BiOS settings and enabling Power On After Power Loss to automatically reboot in-case of power outages!*
 
 ## Features
 
@@ -15,6 +16,7 @@ P4Discord is a Discord app that allows you to manage your locally-hosted Perforc
 * ```/p4 stop``` to stop Helix Core Server (*superuser* and *admin* users only)
 * ```/p4 status``` to check if server is running
 * ```/p4 checkdrive``` to check if server storage drive is connected
+* ```/p4 presence NAME``` to set bot's game status on discord
 * ```/p4 users``` to get list of members in server
 * ```/p4 admins``` to check list of admin users (*superuser* only)
 * ```/p4 promote USERNAME``` to promote users to admin (*superuser* only)
