@@ -65,7 +65,23 @@ async def on_ready():
   print('---------------------------------------------')
   print("LIVE CHAT LOG - See MESSAGES.log For History")
   print("---------------------------------------------")
-  await client.change_presence(activity=discord.Game("PROJECT NAME"), status=discord.Status.online)
+  if os.path.exists("game_presence.txt") and os.path.getsize("game_presence.txt") > 0:
+    try:
+      f = open("game_presence.txt","r")
+      if f.mode == 'r':
+        contents = f.read()
+        await client.change_presence(activity=discord.Game(contents), status=discord.Status.online)
+    finally:
+      f.close()
+  else:
+    try:
+      f = open("game_presence.txt", "w")
+      if f.mode == "w":
+        f.write("DEFAULT PRESENCE")
+    finally:
+      f.close()
+    await client.change_presence(activity=discord.Game("DEFAULT PRESENCE"), status=discord.Status.online)
+
 
 @client.event
 async def on_message(message):
@@ -164,6 +180,20 @@ async def on_message(message):
     else:
       await channel.send("D: drive not connected")
 
+  #change Discord Game Presence
+  elif "/p4 presence" in message.content:
+    await check_superuser()
+    cmd = message.content.split()
+    game = str(cmd[len(cmd)-1])
+    try:
+      f = open("game_presence.txt","w")
+      if f.mode == 'w':
+        f.write(game)
+        await client.change_presence(activity=discord.Game(game),status=discord.Status.online)
+    finally:
+      f.close()
+    await channel.send("Bot presence updated to " + game + "!")
+
   #promote user to admin
   elif "/p4 promote" in message.content:
     await check_superuser()
@@ -232,7 +262,7 @@ async def on_message(message):
 
   elif message.content == "/p4 help":
     if superuser in str(message.author): #only send superuser commands to superuser
-      await message.author.send("========P4Discord *Superuser* Commands========\n/p4 promote            Promote user to admin\n/p4 demote              Demote admin to user\n/p4 users                  Get list of all members in server\n/p4 admins               Get list of all admin users")
+      await message.author.send("========P4Discord *Superuser* Commands========\n/p4 promote            Promote user to admin\n/p4 demote              Demote admin to user\n/p4 users                  Get list of all members in server\n/p4 admins               Get list of all admin users\n/p4 presence            Updated Discord Presence")
     await channel.send("========P4Discord Commands========\n/p4 start                 Start Helix Core Server + Broker\n/p4 stop                  Stop Helix Core Server\n/p4 status               Get server status\n/p4 checkdrive      Get status of storage drive\n/p4 help                   Display this menu")
 
   elif "/p4" in message.content:
