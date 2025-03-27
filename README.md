@@ -1,6 +1,12 @@
-# P4Discord - A Perforce Manager for Discord!
+# P4Discord - A Remote Perforce Client for Discord!
 
-P4Discord is a Discord app that allows you to manage your locally-hosted Perforce server from discord! Using James Ives [Perforce Commit Discord Bot](https://github.com/JamesIves/perforce-commit-discord-bot), and my own [Discord-Bot-Template](https://github.com/Cisc0-gif/Discord-Bot-Template), I created this bot as a wrapper for p4v, p4d, and p4broker so that you can manage perforce without having to connect to your server with SSH or Remote Desktop software.
+P4Discord is a Discord app that allows you to manage your locally-hosted Perforce server with Discord from anywhere in the world! Using James Ives [Perforce Commit Discord Bot](https://github.com/JamesIves/perforce-commit-discord-bot), and my own [Discord-Bot-Template](https://github.com/Cisc0-gif/Discord-Bot-Template), I created this bot as a wrapper for p4v, p4d, and p4broker so that you can manage perforce without having to connect to your server with SSH or Remote Desktop software.
+
+## Features
+* Sends submitted Change reports to your Discord server (Workspace, Time of Submission, Changelist #, Affected Files, etc)
+* DMs Admin when P4 server crashes
+* Give members of your Discord server Admin to control the P4 server
+* Remotely Start, Stop, check the Status of your P4 server, and check external storage drives
 
 ## Setup
 
@@ -10,7 +16,7 @@ P4Discord is a Discord app that allows you to manage your locally-hosted Perforc
 4. Then use ```python bot.py```. A second window should open, displaying the webhook.py console, and your main window should display a live chat log.
 5. *Highly recommend going into your server system's BiOS settings and enabling Power On After Power Loss to automatically reboot in-case of power outages!*
 
-## Features
+## Commands
 
 * ```/p4 start``` to start Helix Core Server + Helix Core Broker (*superuser* and *admin* users only)
 * ```/p4 stop``` to stop Helix Core Server (*superuser* and *admin* users only)
