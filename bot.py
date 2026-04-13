@@ -1,271 +1,297 @@
 #! /usr/bin/env python
 # -*- coding:utf-8 -*-
-#
-# @name   : P4Discord - Perforce x Discord Monitor
-# @url    : https://github.com/Cisc0-gif
-# @author : Cisc0-gif
 
 import discord
+from discord.ext import commands
 import asyncio
 import logging
-import random
-import sys
 import os
 import subprocess
 import time
 from datetime import datetime
+from discord_webhook import DiscordWebhook, DiscordEmbed
 
-# Go To https://discordapp.com/developers/applications/ and start a new application for Token
-# **Enable MEMBER and MESSAGE intents**
+# ================= CONFIG =================
+TOKEN = ""
+WEBHOOK_URL = ""
+superuser = "" #SUPERUSER Discord ID HERE (Get from Messages output!)
 
-#Get member intent to read users in server
+CHECK_INTERVAL = 30
+PROJECT_PATH = "... //PROJECTNAME/main/"
+P4_PASSWORD = ""
+
+# ================= INTENTS =================
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
+bot = commands.Bot(command_prefix="/", intents=intents)
 
-client = discord.Client(command_prefix='/', description='Basic Commands', intents=intents)
-TOKEN = ''
-superuser = "" #superuser to manage admins and server
-monitoring = False
-
+# ================= LOGGING =================
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s'))
 logger.addHandler(handler)
 
-def client_run():
-  os.system("start python webhook.py") #start webhook as side process with bot
-  client.loop.create_task(background_loop())
-  client.run(TOKEN)
+def logwrite(msg):
+    with open('MESSAGES.log', 'a+') as f:
+        f.write(msg + '\n')
 
-def logwrite(msg): #writes chatlog to MESSAGES.log
-  with open('MESSAGES.log', 'a+') as f:
-    f.write(msg + '\n')
-  f.close()
+def format_user(user):
+    if hasattr(user, "discriminator") and user.discriminator != "0":
+        return f"{user.name}#{user.discriminator} (ID: {user.id})"
+    if hasattr(user, "global_name") and user.global_name:
+        return f"{user.global_name} (ID: {user.id})"
+    return f"{user.name} (ID: {user.id})"
 
-async def background_loop():
-  await client.wait_until_ready()
-  while not client.is_closed:
-    print("Booted Up @ " + time.ctime())
-    logwrite("Booted Up @ " + time.ctime())
-    await asyncio.sleep(3600)  #Bootup Message
+# ================= PERFORCE =================
+class PerforceMonitor:
+    def __init__(self):
+        self.latest_change = ''
 
-@client.event
-async def on_ready():
-  print('--------------------------------------------------------------------------------------')
-  print('Server Connect Link:')
-  print('https://discordapp.com/api/oauth2/authorize?scope=bot&client_id=' + str(client.user.id))
-  print('--------------------------------------------------------------------------------------')
-  print('Logged in as:')
-  print(client.user.name)
-  print("or")
-  print(client.user)
-  print("UID:")
-  print(client.user.id)
-  print('---------------------------------------------')
-  print("LIVE CHAT LOG - See MESSAGES.log For History")
-  print("---------------------------------------------")
-  if os.path.exists("game_presence.txt") and os.path.getsize("game_presence.txt") > 0:
+    def run_p4(self, args):
+        env = os.environ.copy()
+        env["P4PASSWD"] = P4_PASSWORD
+        proc = subprocess.Popen(
+            ["p4"] + args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env
+        )
+        out, err = proc.communicate()
+        if err:
+            print("P4 STDERR:", err.decode(errors="ignore"))
+        return out.decode(errors="ignore").strip()
+
+    def ensure_login(self):
+        out = self.run_p4(["login", "-s"])
+        if "ticket expires" in out.lower():
+            return True
+        # Session expired, attempt re-login
+        env = os.environ.copy()
+        env["P4PASSWD"] = P4_PASSWORD
+        proc = subprocess.Popen(
+            ["p4", "login"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env
+        )
+        out, err = proc.communicate(input=P4_PASSWORD.encode())
+        return proc.returncode == 0
+
+    def check_p4(self):
+        try:
+            if not self.ensure_login():
+                print("P4 login failed, skipping changelist check")
+                return ''
+            # Get latest change
+            output = self.run_p4(["changes", "-m", "1"])
+            if not output:
+                return ''
+            parts = output.split()
+            if len(parts) < 2:
+                return ''
+            change_num = parts[1]
+            result = self.run_p4(["describe", "-s", change_num])
+            result = result.replace(PROJECT_PATH, "")
+            
+            # Remove "Affected files" section
+            if "Affected files" in result:
+                result = result.split("Affected files")[0]
+            
+            return result.strip()
+        except Exception as e:
+            print("P4 exception:", e)
+            return ''
+
+    def get_new_change(self, output):
+        if output and output != self.latest_change and '*pending*' not in output:
+            self.latest_change = output
+            return output
+        return ''
+
+    def send_to_discord(self, payload):
+        webhook = DiscordWebhook(url=WEBHOOK_URL)
+        embed = DiscordEmbed(
+            title='Perforce Update',
+            description=f'`{payload[:1900]}`',
+            color=0xc8702a #,timestamp=datetime.now().astimezone().isoformat()
+        )
+        webhook.add_embed(embed)
+        webhook.execute()
+
+p4 = PerforceMonitor()
+
+# ================= UTIL =================
+def server_status():
     try:
-      f = open("game_presence.txt","r")
-      if f.mode == 'r':
-        contents = f.read()
-        await client.change_presence(activity=discord.Game(contents), status=discord.Status.online)
-    finally:
-      f.close()
-  else:
-    try:
-      f = open("game_presence.txt", "w")
-      if f.mode == "w":
-        f.write("DEFAULT PRESENCE")
-    finally:
-      f.close()
-    await client.change_presence(activity=discord.Game("DEFAULT PRESENCE"), status=discord.Status.online)
-
-
-@client.event
-async def on_message(message):
-  if message.author == client.user:
-    return #ignore what bot says in server so no message loop
-  channel = message.channel
-  print(message.author, "said:", message.content, "-- Time:", time.ctime()) #reports to discord.log and live chat
-  logwrite(str(message.author) + " said: " + str(message.content) + "-- Time: " + time.ctime())
-
-  def get_members():
-      guild = message.guild
-      if guild:
-        members = guild.members
-        member_names = [member.name for member in members]
-        return member_names
-
-  def server_status():
-    proc = subprocess.Popen(["p4", "info"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True)
-    (out, err) = proc.communicate()
-    if str(out) == "b''":
+        proc = subprocess.Popen(["p4", "info"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        out, _ = proc.communicate()
+        return bool(out)
+    except:
         return False
-    else:
-        return True
 
-  #check if user has admin privileges
-  async def check_admin():
-    try:
-      f = open("admins.txt","r")
-      if f.mode == 'r':
-        contents = f.read()
-    finally:
-      f.close()
-    if str(message.author) not in contents and superuser not in str(message.author):
-      await channel.send(":ERROR: Only promoted users can run this command")
-      raise asyncio.CancelledError()
-    else:
-      pass
-
-  #check if user has superuser privileges
-  async def check_superuser():
-    if superuser not in str(message.author):
-      await channel.send(":ERROR: Only " + superuser + " can run this command")
-      raise asyncio.CancelledError()
-    else:
-      pass
-
-  async def server_monitor():
-    if monitoring == True:
-        if server_status() == False:
-            await message.author.send(":NOTICE: Perforce Server has gone offline!")
-            result = subprocess.check_output(["wmic", "logicaldisk", "get", "name"])
-            if b'D:' not in result:
-                await message.author.send(":NOTICE: D: drive disconnected!")
-            raise asyncio.CancelledError()
-
-        await asyncio.sleep(5)
-        await server_monitor()
-    else:
-      raise asyncio.CancelledError()
-
-  #start perforce server + broker
-  if message.content == "/p4 start":
-    await check_admin()
-    if server_status() == False:
-        monitoring = True
-        os.system("start /b p4d")
-        os.system("start /b D:\HelixCoreBroker\p4broker.exe")
-        await channel.send("Perforce Server starting...")
-        await channel.send("Helix Core Broker starting...")
-        await server_monitor() #call after so it doesn't declare the server offline prematurely
-    else:
-        await channel.send(":ERROR: Perforce Server is already running!")
-
-  #stop perforce server
-  elif message.content == "/p4 stop":
-    await check_admin()
-    if server_status() == True:
-        monitoring = False
-        os.system("p4 admin stop")
-        await channel.send("Perforce Server stopped...")
-    else:
-        await channel.send(":ERROR: Perforce Server is offline!")
-
-  #get server status
-  elif message.content == "/p4 status":
-    if server_status() == False:
-      await channel.send("Perforce Server: OFFLINE")
-    else:
-      await channel.send("Perforce Server: ONLINE")
-
-  #check if storage drive connected
-  elif message.content == "/p4 checkdrive":
-    result = subprocess.check_output(["wmic", "logicaldisk", "get", "name"])
-    if b'D:' in result: #CHANGE DRIVE NAME HERE
-      await channel.send("D: drive connected")
-    else:
-      await channel.send("D: drive not connected")
-
-  #change Discord Game Presence
-  elif "/p4 presence" in message.content:
-    await check_superuser()
-    cmd = message.content.split()
-    game = str(cmd[len(cmd)-1])
-    try:
-      f = open("game_presence.txt","w")
-      if f.mode == 'w':
-        f.write(game)
-        await client.change_presence(activity=discord.Game(game),status=discord.Status.online)
-    finally:
-      f.close()
-    await channel.send("Bot presence updated to " + game + "!")
-
-  #promote user to admin
-  elif "/p4 promote" in message.content:
-    await check_superuser()
-    cmd = message.content.split()
-    user = str(cmd[len(cmd)-1])
-    member_names = get_members()
-    if user in member_names:
-        with open("admins.txt", "r") as f:
-          admins = f.read()
-        if user not in admins: #check if user in admins
-            try:
-              f = open("admins.txt", "a")
-              if f.mode == "a":
-                f.write(user + '\n')
-                await channel.send(user + " was promoted to admin")
-            finally:
-              f.close()
-        else:
-            await channel.send(user + " is already an admin")
-    else:
-        await channel.send(user + " is not in this server")
-
-  #demote admin to user
-  elif "/p4 demote" in message.content:
-    await check_superuser()
-    cmd = message.content.split()
-    user = str(cmd[len(cmd)-1])
+def is_admin(user_id):
+    if not os.path.exists("admins.txt"):
+        return False
     with open("admins.txt", "r") as f:
-      admins = f.read()
-    if user in admins: #check if user in admins
-        try:
-            with open("admins.txt", "r") as f:
-                lines = f.readlines()
-        
-            lines = [line for line in lines if line.strip() != user.strip()]
+        admins = f.read()
+    return str(user_id) in admins or str(user_id) == superuser
 
-            with open("admins.txt", "w") as f:
-                f.writelines(lines)
+def is_superuser(user_id):
+    return str(user_id) == superuser
 
-            await channel.send(user + " was demoted")
+# ================= BACKGROUND LOOPS =================
+async def perforce_loop():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        output = p4.check_p4()
+        if output:
+            payload = p4.get_new_change(output)
+            if payload:
+                print(f"New changelist detected @ {datetime.now()}")
+                p4.send_to_discord(payload)
+            else:
+                print(f"Checked Perforce @ {datetime.now()} (no new changelist)")
+        else:
+            print(f"Checked Perforce @ {datetime.now()} (no output)")
+        await asyncio.sleep(CHECK_INTERVAL)
 
-        finally:
-            f.close()
+async def heartbeat_loop():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        msg = "Heartbeat @ " + time.ctime()
+        print(msg)
+        logwrite(msg)
+        await asyncio.sleep(3600)
+
+# ================= EVENTS =================
+@bot.event
+async def on_ready():
+    print("Logged in as:", bot.user)
+    if os.path.exists("game_presence.txt") and os.path.getsize("game_presence.txt") > 0:
+        with open("game_presence.txt", "r") as f:
+            game = f.read()
     else:
-        await channel.send(user + " not found in admins")
-      
-  #view all users in server
-  elif message.content == "/p4 users":
-    await check_superuser()
-    member_names = get_members()
-    await channel.send('\n'.join(member_names))
+        game = "DEFAULT PRESENCE"
+        with open("game_presence.txt", "w") as f:
+            f.write(game)
 
-  #view all admins
-  elif message.content == "/p4 admins":
-    await check_superuser()
-    if os.path.getsize("admins.txt") > 0:
-        try:
-          f = open("admins.txt","r")
-          if f.mode == 'r':
-            contents = f.read()
-            await channel.send(contents)
-        finally:
-          f.close()
+    await bot.change_presence(activity=discord.Game(game))
+
+    # 🔥 SEND INITIAL CHANGE
+    print("Fetching initial changelist...")
+    output = p4.check_p4()
+    if output:
+        p4.latest_change = output
+        p4.send_to_discord(output)
+        print("Initial changelist sent")
     else:
-        await channel.send(":ERROR: No admins found.")
+        print("No initial changelist found")
 
-  elif message.content == "/p4 help":
-    if superuser in str(message.author): #only send superuser commands to superuser
-      await message.author.send("========P4Discord *Superuser* Commands========\n/p4 promote            Promote user to admin\n/p4 demote              Demote admin to user\n/p4 users                  Get list of all members in server\n/p4 admins               Get list of all admin users\n/p4 presence            Updated Discord Presence")
-    await channel.send("========P4Discord Commands========\n/p4 start                 Start Helix Core Server + Broker\n/p4 stop                  Stop Helix Core Server\n/p4 status               Get server status\n/p4 checkdrive      Get status of storage drive\n/p4 help                   Display this menu")
+    bot.loop.create_task(perforce_loop())
+    bot.loop.create_task(heartbeat_loop())
 
-  elif "/p4" in message.content:
-    await channel.send(":ERROR: Unknown command. Use '/p4 help' to view commands")
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    user_tag = format_user(message.author)
+    print(user_tag, "said:", message.content, "-- Time:", time.ctime())
+    logwrite(f"{user_tag} said: {message.content} -- Time: {time.ctime()}")
+    await bot.process_commands(message)
 
-client_run()
+# ================= COMMANDS =================
+@bot.command()
+async def ping(ctx):
+    """Checks Perforce server status"""
+    await ctx.send("Perforce Server: ONLINE" if server_status() else "Perforce Server: OFFLINE")
+
+@bot.command()
+async def stop(ctx):
+    """Returns p4 admin stop"""
+    if not is_admin(ctx.author.id):
+        await ctx.send("ERROR: Admins only")
+        return
+    if server_status():
+        os.system("p4 admin stop")
+        await ctx.send("Perforce Server stopped...")
+    else:
+        await ctx.send("ERROR: Server already offline")
+
+@bot.command()
+async def restart(ctx):
+    """Runs p4 admin restart"""
+    if not is_admin(ctx.author.id):
+        await ctx.send("ERROR: Admins only")
+        return
+    if server_status():
+        os.system("p4 admin restart")
+        await ctx.send("Perforce Server restarted...")
+    else:
+        await ctx.send("ERROR: Server offline")
+
+@bot.command()
+async def latest(ctx):
+    """Returns latest changelist to webhook"""
+    if not server_status():
+        await ctx.send("Perforce Server: OFFLINE")
+        return
+    await ctx.send("Fetching latest changelist...")
+    output = p4.check_p4()
+    if not output:
+        await ctx.send("No changelist found.")
+        return
+    print("Manual fetch @", datetime.now())
+    p4.send_to_discord(output)
+    await ctx.send("Latest changelist sent to webhook.")
+
+@bot.command()
+async def presence(ctx, *, game: str):
+    """STRING - sets the App Activity"""
+    if not is_superuser(ctx.author.id):
+        await ctx.send("ERROR: Superuser only")
+        return
+    with open("game_presence.txt", "w") as f:
+        f.write(game)
+    await bot.change_presence(activity=discord.Game(game))
+    await ctx.send(f"Presence updated to: {game}")
+
+@bot.command()
+async def session(ctx):
+    """Checks Perforce login session"""
+    await ctx.send("Checking Perforce login...")
+
+    try:
+        out = p4.run_p4(["login", "-s"])
+
+        if "ticket expires" in out.lower():
+            await ctx.send("✅ Perforce login is ACTIVE")
+            return
+
+        await ctx.send("⚠️ Session expired, attempting re-login...")
+
+        env = os.environ.copy()
+        env["P4PASSWD"] = P4_PASSWORD
+        proc = subprocess.Popen(
+            ["p4", "login"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env
+        )
+        out, err = proc.communicate(input=P4_PASSWORD.encode())
+        out = out.decode(errors="ignore")
+        err = err.decode(errors="ignore")
+
+        if "logged in" in out.lower() or proc.returncode == 0:
+            await ctx.send("✅ Login successful")
+        else:
+            await ctx.send(f"❌ Login failed: {err or out}")
+
+    except Exception as e:
+        await ctx.send(f"❌ Error checking login: {e}")
+
+# ================= RUN =================
+bot.run(TOKEN)

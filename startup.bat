@@ -2,6 +2,6 @@
 :: CTRL + R -> "shell:startup" TO OPEN STARTUP FOLDER
 
 @echo off
-cd %P4DISCORD FILEPATH%
-bot.py
+cd C:\Users\%USERNAME%\P4ROOT
+python bot.py
 

@@ -1,40 +1,40 @@
 # P4Discord - A Remote Perforce Client for Discord!
 
-P4Discord is a Discord app that allows you to manage your locally-hosted Perforce server with Discord from anywhere in the world! Using James Ives [Perforce Commit Discord Bot](https://github.com/JamesIves/perforce-commit-discord-bot), and my own [Discord-Bot-Template](https://github.com/Cisc0-gif/Discord-Bot-Template), I created this bot as a wrapper for p4v, p4d, and p4broker so that you can manage perforce without having to connect to your server with SSH or Remote Desktop software.
+Hosting your own Perforce server locally? P4Discord is a bot that allows you to manage your server from Discord! Get live updates on Submits, restart your server, and add your own commands for more!
+
+Using James Ives [Perforce Commit Discord Bot](https://github.com/JamesIves/perforce-commit-discord-bot), and my own [Discord-Bot-Template](https://github.com/Cisc0-gif/Discord-Bot-Template), I created this bot as a wrapper for p4v and p4d so you can manage a local server without having to use remote software.
 
 ## Features
-* Sends submitted Change reports to your Discord server (Workspace, Time of Submission, Changelist #, Affected Files, etc)
-* DMs Admin when P4 server crashes
-* Give members of your Discord server Admin to control the P4 server
-* Remotely Start, Stop, check the Status of your P4 server, and check external storage drives
+* More secure than RDP connections
+* Sends Submit reports to Discord Channels in realtime using Webhooks (Workspace, Time of Submission, Changelist #, Affected Files, etc)
+* Remotely Start, Stop, check the Status of your Perforce server
+* Features an Admin List, to allow other users to control the server
 
 ## Setup
 
-1. On your server machine, clone this repo onto your C: drive (```/p4 checkdrive``` checks if your storage drive is connected or not, so you should run this bot off an internal drive to prevent failure)
-2. Use ```pip install -r requirements.txt``` to install necessary packages (Reliably tested with Python 3.7.2, anything past that is untested and may have dependency issues!)
-3. Configure ```TOKEN```, ```webhookURL```, and ```startup.bat``` with necessary values (Bot Token, Webhook URL, filepath). WIN + R, enter "shell:startup", and place ```startup.bat``` in startup folder.
-4. Then use ```python bot.py```. A second window should open, displaying the webhook.py console, and your main window should display a live chat log.
-5. *Highly recommend going into your server system's BiOS settings and enabling Power On After Power Loss to automatically reboot in-case of power outages!*
+1. On your server machine, clone this repo.
+2. Run ```Setup.bat``` to run setup installer (it'll prompt for your P4Root directory, Bot Token, Webhook URL from the channel you'd like to post Submits to, and your P4 Admin Password to allow access for live Submit checks)
 
-## Commands
+## Recommendations
+* *Highly recommend going into your server's BiOS settings and enabling Power On After Power Loss to automatically reboot in-case of outages!*
+* [Tailscale](https://tailscale.com) is a VPN service that bridges server and workspace machines into a virtual network—as if each machine was on the same LAN—making it way easier to connect remotely. (Free plan is up to 3 users!)
 
-* ```/p4 start``` to start Helix Core Server + Helix Core Broker (*superuser* and *admin* users only)
-* ```/p4 stop``` to stop Helix Core Server (*superuser* and *admin* users only)
-* ```/p4 status``` to check if server is running
-* ```/p4 checkdrive``` to check if server storage drive is connected
-* ```/p4 presence NAME``` to set bot's game status on discord
-* ```/p4 users``` to get list of members in server
-* ```/p4 admins``` to check list of admin users (*superuser* only)
-* ```/p4 promote USERNAME``` to promote users to admin (*superuser* only)
-* ```/p4 demote USERNAME``` to demote admin to user (*superuser* only)
-* Set ```webhookURL``` in webhook.py to send notifications everytime a change is pushed
-* Put ```startup.bat``` in Startup folder to automatically start server on system reboot (failsafe)
+## Default Commandlist
+
+* ```/help``` Returns this commandlist
+* ```/latest``` Posts latest changelist to webhook channel
+* ```/ping``` Returns Perforce server status
+* ```/presence STRING``` Sets the Bot's App Activity in Discord
+* ```/restart``` Runs p4 admin restart
+* ```/session``` Checks Perforce login session (for webhook functionality)
+* ```/stop``` Runs p4 admin stop
 
 ## Built With
 
 * James Ives' [perforce-commit-discord-bot](https://github.com/JamesIves/perforce-commit-discord-bot)
 * Python 3.7.2
 * GitHub
+* Claude
 
 ## Authors
 
