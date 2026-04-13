@@ -1,8 +1,6 @@
 # P4Discord - A Remote Perforce Client for Discord!
 
-Hosting your own Perforce server locally? P4Discord is a bot that allows you to manage your server from Discord! Get live updates on Submits, restart your server, and add your own commands for more!
-
-Using James Ives [Perforce Commit Discord Bot](https://github.com/JamesIves/perforce-commit-discord-bot), and my own [Discord-Bot-Template](https://github.com/Cisc0-gif/Discord-Bot-Template), I created this bot as a wrapper for p4v and p4d so you can manage a local server without having to use remote software.
+Hosting your own Perforce server locally? P4Discord is a bot that allows remote management directly from Discord! Post Submits to channels in realtime, control the Perforce service, and add your own commands for more! This bot essentially acts as a wrapper for p4v and p4d to manage your server without remote software.
 
 ## Features
 * More secure than RDP connections
@@ -13,11 +11,12 @@ Using James Ives [Perforce Commit Discord Bot](https://github.com/JamesIves/perf
 ## Setup
 
 1. On your server machine, clone this repo.
-2. Run ```Setup.bat``` to run setup installer (it'll prompt for your P4Root directory, Bot Token, Webhook URL from the channel you'd like to post Submits to, and your P4 Admin Password to allow access for live Submit checks)
+2. Run ```Setup.bat``` to run setup installer 
+*It'll ask for your P4Root directory, Bot Token, Webhook URL from the channel you'd like to post Submits to, and your P4 Admin Password to allow access for live Submit checks*
 
 ## Recommendations
 * *Highly recommend going into your server's BiOS settings and enabling Power On After Power Loss to automatically reboot in-case of outages!*
-* [Tailscale](https://tailscale.com) is a VPN service that bridges server and workspace machines into a virtual network—as if each machine was on the same LAN—making it way easier to connect remotely. (Free plan is up to 3 users!)
+* [Tailscale](https://tailscale.com) is a VPN service that bridges server and workspace machines into a virtual network—as if each machine were on the same LAN—making it way easier to connect remotely. (Free plan is up to 3 users!)
 
 ## Default Commandlist
 
