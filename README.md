@@ -13,7 +13,7 @@ Hosting your own Perforce server locally? P4Discord is a bot that allows remote 
 1. On your server machine, clone this repo.
 2. Run ```Setup.bat``` to run setup installer 
 
-*It'll ask for your P4Root directory, Bot Token, Webhook URL from the channel you'd like to post Submits to, and your P4 Admin Password to allow access for live Submit checks*
+It'll ask for your P4Root directory, Bot Token, Webhook URL from the channel you'd like to post Submits to, and your P4 Admin Password to allow access for live Submit checks
 
 ## Recommendations
 * *Highly recommend going into your server's BiOS settings and enabling Power On After Power Loss to automatically reboot in-case of outages!*
