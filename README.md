@@ -1,6 +1,6 @@
 # P4Discord - A Remote Perforce Client for Discord!
 
-Hosting your own Perforce server locally? P4Discord is a bot that allows remote management directly from Discord! Post Submits to channels in realtime, control the Perforce service, and add your own commands for more! This bot essentially acts as a wrapper for p4v and p4d to manage your server without remote software.
+Hosting your own Perforce server locally? P4Discord is a bot that allows remote management directly from Discord! Post Submits to channels in realtime, control the Perforce service, and add your own commands for more!
 
 ## Features
 * More secure than RDP connections
@@ -12,7 +12,7 @@ Hosting your own Perforce server locally? P4Discord is a bot that allows remote 
 
 1. On your server machine, clone this repo.
 2. Run ```Setup.bat``` to run setup installer 
-*It'll ask for your P4Root directory, Bot Token, Webhook URL from the channel you'd like to post Submits to, and your P4 Admin Password to allow access for live Submit checks*
+* *It'll ask for your P4Root directory, Bot Token, Webhook URL from the channel you'd like to post Submits to, and your P4 Admin Password to allow access for live Submit checks*
 
 ## Recommendations
 * *Highly recommend going into your server's BiOS settings and enabling Power On After Power Loss to automatically reboot in-case of outages!*
